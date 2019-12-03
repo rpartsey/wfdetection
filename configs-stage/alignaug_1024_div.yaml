@@ -1,0 +1,58 @@
+align: false
+augmentation_class: frog
+augmentations:
+  p: 0.9
+  size: &id001
+  - 1024
+  - 1024
+train_split_name: split/train-2.npy
+csv_path: /datasets/siim-dataset/stage_2_train.csv
+cut_borders: true
+data_path: /datasets/processed_1024_train-2/
+data_sampler: frog_balanced_sampler
+description: ''
+experiment_path: experiments/stage_alignaug_1024_div
+img_size: *id001
+model:
+  params:
+    in_channels: 3
+    out_channels: 1
+    pretrained: true
+  type: smp_unet
+generate_random: True
+random_state: 1566773264
+real_train_size: 5
+sampler_multiplier: 1.0
+stage1:
+  loss:
+    params:
+      divider: 10.0
+    type: binary_focal_dice
+  model_path: experiments/stage_alignaug/loss.h5
+  num_epochs: 17
+  optimizer:
+    params:
+      lr: 0.0001
+    type: adam
+  resume_training: true
+  scheduler:
+    params:
+      mode: min
+      patience: 3
+    type: plateau
+  stopper:
+    patience: 70
+train_batch_size: 5
+train_val_state: 5
+transformations:
+  image:
+  - name: gray2rgbtriple
+  - name: bydimnormalise
+  - name: fromnumpy
+  - name: tofloat
+  mask:
+  - name: alltosingleobject
+  - name: fromnumpy
+  - name: tolong
+val_batch_size: 5
+validation_fraction: 0.2

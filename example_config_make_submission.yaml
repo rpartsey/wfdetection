@@ -1,0 +1,37 @@
+---
+
+#submission_name: stage_best_without_tta
+#submission_name: stage_align
+submission_name: stage_align_div
+# don't forget to check config
+#submission_name: stage_best
+#csv_path: /datasets/siim-dataset/train-rle.csv
+
+#tta: flip,....
+
+postprocessing:
+    # 0.5 is Default to argmax
+#    class_threshold: 0.9
+#    class_threshold: 0.5
+    class_threshold: 0.55
+#    class_threshold: 0.5
+    min_area_subtraction:
+        use: True
+#        area: 3800
+#        area: 4500
+        area: 3300
+#        area: 3600
+    erode_mask: False
+
+models_ensemble:
+  model1:
+#      name: ResNet
+#      path: experiments/stage_best/loss.h5
+#      path: experiments/stage_alignaug_1024/loss.h5
+      path: experiments/stage_alignaug_1024_div/loss.h5
+#      path: experiments/stage_best/loss.h5
+#do_tta: False
+#do_tta: True
+do_tta: True
+#do_tta: True
+input_image_size: 1024

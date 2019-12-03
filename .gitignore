@@ -1,0 +1,11 @@
+.idea/
+*.pyc
+weights/
+__pycache__/
+data/
+msegmentation-env/
+training/runs/
+submissions/
+.ipynb_checkpoints/
+experiments/
+

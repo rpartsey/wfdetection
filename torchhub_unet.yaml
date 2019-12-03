@@ -1,0 +1,94 @@
+---
+
+# I don't know what for
+experiment_desc: torchhub_unet_histnorm_bce
+
+# Used where to save experiment
+experiment_path: experiments/torchhub_unet_imbsampler_histnorm_bce/
+
+# Path to folder where must be two folder: `mask`, `img` in our format
+data_path: /datasets/processed_256_train/
+
+# Given .csv file with labels from SIIM data
+csv_path: /datasets/siim-dataset/train-rle.csv
+
+# Setup random_state for dividing dataset
+random_state: 42
+
+# Fraction of dataset to be chosen for validation while training
+validation_fraction: 0.2
+
+transformations:
+  image:
+    - name: histnorm
+#      params:
+#        threshold: 145
+#        left_mean: 116.46245344278002
+#        left_std: 13.827774125976067
+#        right_mean: 160.45476330904316
+#        right_std: 9.376197092724993
+    - name: gray2rgbtriple
+    - name: fromnumpy
+    - name: tofloat
+  mask:
+    - name: alltosingleobject
+    - name: fromnumpy
+    - name: tolong
+
+# Here should be augmentation config block
+# TODO: aug
+# aug:
+#  crop:
+#    prob: 1.0
+#  random_scale:
+
+model:
+    type: torchhub_unet      # torch hub unet
+    in_channels: 3           # in_channels, default 3
+    out_channels: 1          # out_channels, default 1
+    init_features: 32        # default 32, min_number_of_channels
+    pretrained: True         # pretrained for 3 channels
+
+# TODO: Not used right now. I think should be used for `torch.utils.data.DataLoader`
+# num_workers: 20
+
+# Batch sizes
+train_batch_size: 32
+val_batch_size: 1
+# TODO: Not used right now.
+# input_image_size: [256, 256]
+
+# --- Stages. used for training Model from stage to stage with changeable params ---
+# TODO: I think the problem here is that if `optimizer` is
+# TODO: loaded then you cannot at once change learning rate
+# TODO: and freezage of encoder
+stage1:
+  # If True: loads model, optimizer, `best_metric` into `MetricCounter` from `best` saved state
+  resume_training: False
+  # Epochs to train
+  num_epochs: 100
+  # Loss name;
+  # Possible values - [dice_cc, dice]
+  # TODO: make all losses universal
+  loss: bce_weights
+  optimizer: # optimizer params
+      # If False, doesn't load state even if `resume_training` is True
+      load: False
+      # Optim name;
+      # Possible values - [adam, sgd, adadelta]
+      name: adam
+      # Learning rate
+      # TODO: there is still a problem with `resume training`
+      lr: 0.0001
+  # If True: freezes encoder. Works only for pretrained encoders.
+  model_freeze: False
+  scheduler:
+       name: plateau          # Plateau TODO: describe
+       mode: min
+       factor: 0.5
+       patience: 3
+       min_lr: 0.0000001
+       eps: 0.00000001
+  stopper: # Stops the training if constraints are met
+    use: False
+    patience: 5

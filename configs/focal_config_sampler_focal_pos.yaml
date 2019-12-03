@@ -1,0 +1,78 @@
+---
+#
+description: ""
+# Used where to save experiment
+experiment_path: experiments/smp_unet_sampler_focal_pos
+
+# data_only_positive or data_sampler == frog_balanced_sampler or ImbalancedDataSampler
+#data_only_positive: True
+data_sampler: "frog_balanced_sampler"
+
+# Path to folder where must be two folder: `mask`, `img` in our format
+data_path: /datasets/processed_256_train/
+#data_path: /home/dzvinka/PycharmProjects/SIIM-ACR_Kaggle_MedicalSegmentators/data/processed_256/processed_256/
+img_size: &SIZE [256, 256]
+
+# Given .csv file with labels from SIIM data
+csv_path: /datasets/siim-dataset/train-rle.csv
+
+# Setup random_state for dividing dataset
+random_state: 5
+# TODO: deprecated
+train_val_state: 5
+
+# Fraction of dataset to be chosen for validation while training
+# TODO: deprecated
+validation_fraction: 0.2
+
+transformations:
+  image:
+#    - name: histnorm
+    - name: gray2rgbtriple
+#    - name: defaultnorm
+#      params:
+#        mean: [0.485, 0.456, 0.406]
+#        std: [0.229, 0.224, 0.225]
+    - name: bydimnormalise
+    - name: fromnumpy
+    - name: tofloat
+  mask:
+    - name: alltosingleobject
+    - name: fromnumpy
+    - name: tolong
+
+augmentations:
+  p: 0.9
+  size: *SIZE
+
+model: # specs for model
+    type: smp_unet
+    params:
+      in_channels: 3
+      out_channels: 1
+      pretrained: True
+
+# Batch sizes
+train_batch_size: 32
+val_batch_size: 32
+
+stage1:
+  resume_training: False
+  model_path: ""
+  # Epochs to train
+  num_epochs: 80
+  loss:
+    type: binary_positive_focal_dice
+  optimizer: # optimizer params
+      # Optim name;
+      # Possible values - [adam, sgd, adadelta]
+      type: adam
+      params:
+        lr: 0.0001
+  scheduler: # Scheduler configurations. Scheduler is used for Learning rate change
+     type: plateau          # Plateau TODO: describe
+     params:
+       mode: min
+       patience: 3
+  stopper: # Stops the training if constraints are met
+    patience: 70

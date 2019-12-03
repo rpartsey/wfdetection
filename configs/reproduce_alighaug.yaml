@@ -1,0 +1,53 @@
+align: false
+augmentation_class: frog
+augmentations:
+  p: 0.9
+  size: &id001
+  - 256
+  - 256
+csv_path: /datasets/siim-dataset/train-rle.csv
+cut_borders: true
+data_path: /datasets/processed_256_train/
+data_sampler: frog_balanced_sampler
+description: ''
+experiment_path: experiments/reproduce_alignaug
+img_size: *id001
+model:
+  params:
+    in_channels: 3
+    out_channels: 1
+    pretrained: true
+  type: smp_unet
+generate_random: False
+random_state: 1566752966
+stage1:
+  loss:
+    type: binary_focal_dice
+  model_path: ''
+  num_epochs: 80
+  optimizer:
+    params:
+      lr: 0.0001
+    type: adam
+  resume_training: false
+  scheduler:
+    params:
+      mode: min
+      patience: 3
+    type: plateau
+  stopper:
+    patience: 70
+train_batch_size: 32
+train_val_state: 5
+transformations:
+  image:
+  - name: gray2rgbtriple
+  - name: bydimnormalise
+  - name: fromnumpy
+  - name: tofloat
+  mask:
+  - name: alltosingleobject
+  - name: fromnumpy
+  - name: tolong
+val_batch_size: 32
+validation_fraction: 0.2
