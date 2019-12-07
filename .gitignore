@@ -8,4 +8,5 @@ training/runs/
 submissions/
 .ipynb_checkpoints/
 experiments/
-
+notebooks/
+pytorch_coursera/
