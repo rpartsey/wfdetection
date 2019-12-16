@@ -12,6 +12,14 @@ import numpy as np
 import cv2
 from .transformations import FromNumpy
 from .align import AlignTransform
+import rasterio
+from torchvision import transforms
+
+
+def read_tif(file_path):
+    with rasterio.open(file_path) as dataset:
+        bands = dataset.read()
+        return bands
 
 
 def cutBorders(X, y):
@@ -73,31 +81,51 @@ class BinaryLoader(Dataset):
             raise ValueError
         mask_exists = self.input_df.iloc[idx][self.MASK_EXISTS_COLUMN]
 
-        fn = "{}.png".format(cur_id)
-        img_path = os.path.join(self.root_dir, 'img', fn)
-        mask_path = os.path.join(self.root_dir, 'mask', fn)
+        # fn = "{}.png".format(cur_id)
+        img_path = os.path.join(self.root_dir, 'img', cur_id)
+        mask_path = os.path.join(self.root_dir, 'mask', cur_id)
 
         # Reading
-        X = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-        y = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-        if self.align:
-            X = self.align(X, y)
-        if self.cut_borders:
-            X, y, _ = cutBorders(X, y)
 
-        if self.aug:
-            X, y = self.aug(X, y)
+        # original shape C x H x W
+        X = np.array(read_tif(img_path)).transpose((1, 2, 0))
+        X = (X / np.max(X) * 255).astype(np.uint8)
+        y = read_tif(mask_path)[0]  # H x W
 
+        X = cv2.resize(X, (256, 256))
         input_img = X.copy()
 
-        if self.image_transform:
-            X = self.image_transform(X)
+        transformations = transforms.Compose([transforms.ToTensor()])
+        X = transformations(X)
 
-        if self.mask_transform:
-            y = self.mask_transform(y)
 
-        # X = FromNumpy()(X).float()
-        # y = FromNumpy()(y).long()
+
+        y = cv2.resize(y, (256, 256))
+        y = transformations(y)
+
+
+
+        # y = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+        # X = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
+
+        # if self.align:
+        #     X = self.align(X, y)
+        #
+        # if self.cut_borders:
+        #     X, y, _ = cutBorders(X, y)
+        #
+        # if self.aug:
+        #     X, y = self.aug(X, y)
+
+        # if self.image_transform:
+        #     X = self.image_transform(X)
+
+        # if self.mask_transform:
+        #     y = self.mask_transform(y)
+
+        # X = X.float()
+        # y = y.long()
 
         return X, y, input_img, int(mask_exists)
 

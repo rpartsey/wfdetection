@@ -214,16 +214,19 @@ class Config(object):
         # get df
         df = pd.read_csv(self.config["csv_path"])
         df = df.groupby("ImageId").first().reset_index()
-        df["mask_exists"] = df[' EncodedPixels'] != ' -1'
+        # df["mask_exists"] = df[' EncodedPixels'] != ' -1'
         if self.config.get("data_only_positive", False):
             df = df[df["mask_exists"]]
 
-        train_split_name = self.config.get("train_split_name", "split/train.npy")
-        train_image_ids = np.load(train_split_name, allow_pickle=True)
-        val_image_ids = np.load("split/validation.npy", allow_pickle=True)
+        # train_split_name = self.config.get("train_split_name", "split/train.npy")
+        # train_image_ids = np.load(train_split_name, allow_pickle=True)
+        # val_image_ids = np.load("split/validation.npy", allow_pickle=True)
 
-        train_csv = df[df["ImageId"].isin(train_image_ids)].reset_index(drop=True)
-        val_csv = df[df["ImageId"].isin(val_image_ids)].reset_index(drop=True)
+        # train_csv = df[df["ImageId"].isin(train_image_ids)].reset_index(drop=True)
+        # val_csv = df[df["ImageId"].isin(val_image_ids)].reset_index(drop=True)
+
+        train_csv = df.iloc[: len(df)-5, :]
+        val_csv = df.iloc[-5:, :]
 
         cut_borders = self.config.get("cut_borders", False)
 

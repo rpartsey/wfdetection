@@ -25,8 +25,8 @@ class BasePositiveLoader(BinaryLoader):
 
 
 class TrainLoader(BasePositiveLoader):
-    def __len__(self):
-        return 5
+    # def __len__(self):
+    #     return 5
 
     def __getitem__(self, idx):
         idx = random.randint(0, len(self.input_df) - 1)
@@ -34,5 +34,6 @@ class TrainLoader(BasePositiveLoader):
 
 
 class ValLoader(BasePositiveLoader):
-    def __len__(self):
-        return 10
+    pass
+    # def __len__(self):
+    #     return 5

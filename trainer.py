@@ -109,12 +109,12 @@ class Trainer(object):
             imgs = real_img[0].unsqueeze(0).float()
             if imgs.shape[0] == 3:
                 imgs = imgs.numpy().transpose(1, 2, 0)
-                imgs = cv2.cvtColor(imgs, cv2.COLOR_RGB2GRAY)
-                imgs = torch.from_numpy(np.expand_dims(imgs, 0))
+                # imgs = cv2.cvtColor(imgs, cv2.COLOR_RGB2GRAY)
+                # imgs = torch.from_numpy(np.expand_dims(imgs, 0))
 
             # all of inputs is 1xWxH
             grid = vutils.make_grid(
-                [imgs, processed_logits, masks],
+                [imgs[:, :, :, 0], imgs[:, :, :, 1],imgs[:, :, :, 2], processed_logits, masks],
                 nrow=3
             )
             self.writer.add_image("{}/image_{}".format(name, i), grid, epoch)
