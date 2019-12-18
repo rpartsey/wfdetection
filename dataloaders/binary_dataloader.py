@@ -79,35 +79,25 @@ class BinaryLoader(Dataset):
         except:
             print(idx, self.IMAGE_ID_COLUMN, self.input_df.shape)
             raise ValueError
-        mask_exists = self.input_df.iloc[idx][self.MASK_EXISTS_COLUMN]
 
         # fn = "{}.png".format(cur_id)
         img_path = os.path.join(self.root_dir, 'img', cur_id)
         mask_path = os.path.join(self.root_dir, 'mask', cur_id)
 
-        # Reading
-
         # original shape C x H x W
-        X = np.array(read_tif(img_path)).transpose((1, 2, 0))
-        X = (X / np.max(X) * 255).astype(np.uint8)
-        y = read_tif(mask_path)[0]  # H x W
-
+        X = np.array(read_tif(img_path)).transpose((1, 2, 0)).astype(np.float32) / np.iinfo(np.uint16).max
+        # X = (X / np.max(X) * 255).astype(np.uint8)
         X = cv2.resize(X, (256, 256))
-        input_img = X.copy()
+        # transformations = transforms.Compose([transforms.ToTensor()])
+        # X = transformations(X)
+        if self.image_transform:
+            X = self.image_transform(X)
 
-        transformations = transforms.Compose([transforms.ToTensor()])
-        X = transformations(X)
-
-
-
+        y = read_tif(mask_path)[0]  # H x W
         y = cv2.resize(y, (256, 256)).astype(np.uint8)
-        y = torch.from_numpy(np.expand_dims(y, 0))
-
-
-
-        # y = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-        # X = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-
+        # y = torch.from_numpy(np.expand_dims(y, 0))
+        if self.mask_transform:
+            y = self.mask_transform(y)
 
         # if self.align:
         #     X = self.align(X, y)
@@ -118,16 +108,7 @@ class BinaryLoader(Dataset):
         # if self.aug:
         #     X, y = self.aug(X, y)
 
-        # if self.image_transform:
-        #     X = self.image_transform(X)
-
-        # if self.mask_transform:
-        #     y = self.mask_transform(y)
-
-        # X = X.float()
-        # y = y.long()
-
-        return X, y, input_img, int(mask_exists)
+        return X, y
 
     def __str__(self):
         return self.__class__.__name__

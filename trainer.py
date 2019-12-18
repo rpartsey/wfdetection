@@ -93,84 +93,68 @@ class Trainer(object):
                 break
 
     def _write_image(self, name, data, epoch):
-        # Should be images
-        t = tqdm(DataLoader(data, shuffle=False, batch_size=1),
-                 desc="{}_img_e:{}".format(str(data), epoch))
-        for i, (imgs, masks, real_img, _) in enumerate(t):
-            imgs = imgs.to(self.config.device)
+        description = "{}_img_e:{}".format(str(data), epoch)
+        loader = DataLoader(data, shuffle=False, batch_size=1) # NOTE: batch_size=1
+        with tqdm(loader, desc=description) as t:
+            for i, (images, masks) in enumerate(t):
+                images = images.to(self.config.device)
+                with torch.no_grad():
+                    logits = self.model(images).sigmoid()
+                    logits = torch.tensor((logits.cpu() > 0.5), dtype=torch.uint8)
 
-            with torch.no_grad():
-                processed_logits = self.model(imgs)
-                processed_logits = processed_logits.sigmoid()
-                processed_logits = processed_logits[0:, -1, :, :].float().cpu()
-            # SHAPE SHOULD be 1xWxH
-            masks = masks[0].float()
+                actual_mask = masks[0].float()
+                predicted_mask = logits[0].float()
 
-            imgs = real_img[0].unsqueeze(0).float()
-            if imgs.shape[0] == 3:
-                imgs = imgs.numpy().transpose(1, 2, 0)
-                # imgs = cv2.cvtColor(imgs, cv2.COLOR_RGB2GRAY)
-                # imgs = torch.from_numpy(np.expand_dims(imgs, 0))
-
-            # all of inputs is 1xWxH
-            grid = vutils.make_grid(
-                [imgs[:, :, :, 0], imgs[:, :, :, 1],imgs[:, :, :, 2], processed_logits, masks],
-                nrow=3
-            )
-            self.writer.add_image("{}/image_{}".format(name, i), grid, epoch)
-        t.close()
+                grid = vutils.make_grid([predicted_mask, actual_mask], nrow=2)
+                self.writer.add_image("{}/image_{}".format(name, i), grid, epoch)
 
     def _train_epoch(self, epoch, dataloader):
         self.model.train()
+        description = 'Train Epoch {}, lr {}'.format(epoch, self.lr)
+        with tqdm(dataloader, desc=description) as t:
+            self.optim.zero_grad()
+            for i, (imgs, masks) in enumerate(t):
+                imgs, masks = imgs.to(self.device), masks.float().to(self.device)
 
-        t = tqdm(dataloader, desc='Train Epoch {}, lr {}'.format(epoch, self.lr))
+                logits = self.model(imgs)
+                if logits.shape[1] != 1:
+                    raise ValueError("Only SIGMOID supported")
+                loss = self.criterion(logits, masks) / self.accum_steps
 
-        self.optim.zero_grad()
-        for i, (imgs, masks, _, _) in enumerate(t):
-            imgs, masks = imgs.to(self.device), masks.float().to(self.device)
+                loss.backward()
+                if self.config.config.get("bug", False):
+                    if (self.global_step + 1) % self.accum_steps:
+                        self.optim.step()
+                        self.optim.zero_grad()
+                else:
+                    if (self.global_step + 1) % self.accum_steps == 0:
+                        self.optim.step()
+                        self.optim.zero_grad()
 
-            logits = self.model(imgs)
-            if logits.shape[1] != 1:
-                raise ValueError("Only SIGMOID supported")
-            loss = self.criterion(logits, masks) / self.accum_steps
-
-            loss.backward()
-            if self.config.config.get("bug", False):
-                if (self.global_step + 1) % self.accum_steps:
-                    self.optim.step()
-                    self.optim.zero_grad()
-            else:
-                if (self.global_step + 1) % self.accum_steps == 0:
-                    self.optim.step()
-                    self.optim.zero_grad()
-
-            t.set_postfix(loss=loss.item())
-            self.writer.add_scalar("batch", loss.item(), self.global_step)
-            self.global_step += 1
-        t.close()
+                t.set_postfix(loss=loss.item())
+                self.writer.add_scalar("batch", loss.item(), self.global_step)
+                self.global_step += 1
 
     def calc_metrics(self, name, epoch, dataloader):
         self.model.eval()
-        t = tqdm(dataloader, desc='Calc metr. {} e:{}'.format(name, epoch))
 
         meter = Meter()
         loss_list = []
         loss_length = 0.0001
+        with tqdm(dataloader, desc='Calc metr. {} e:{}'.format(name, epoch)) as t:
+            for imgs, masks in t:
+                imgs, masks = imgs.to(self.device), masks.float().to(self.device)
+                batch = imgs.shape[0]
 
-        for imgs, masks, _, _ in t:
-            imgs, masks = imgs.to(self.device), masks.float().to(self.device)
-            batch = imgs.shape[0]
+                with torch.no_grad():
+                    logits = self.model(imgs)
+                    if logits.shape[1] != 1:
+                        raise ValueError("Only SIGMOID supported")
+                    loss = self.criterion(logits, masks)
+                    loss_list.append(loss.item() * batch)
+                    loss_length += batch
 
-            with torch.no_grad():
-                logits = self.model(imgs)
-                if logits.shape[1] != 1:
-                    raise ValueError("Only SIGMOID supported")
-                loss = self.criterion(logits, masks)
-                loss_list.append(loss.item() * batch)
-                loss_length += batch
-
-                meter.update(masks.cpu(), logits.cpu())
-        t.close()
+                    meter.update(masks.cpu(), logits.cpu())
 
         metrics = meter.get_metrics()
         metrics["loss"] = sum(loss_list) / loss_length
