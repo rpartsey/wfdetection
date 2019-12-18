@@ -100,8 +100,8 @@ class BinaryLoader(Dataset):
 
 
 
-        y = cv2.resize(y, (256, 256))
-        y = transformations(y)
+        y = cv2.resize(y, (256, 256)).astype(np.uint8)
+        y = torch.from_numpy(np.expand_dims(y, 0))
 
 
 

@@ -2,17 +2,17 @@
 #
 description: ""
 # Used where to save experiment
-experiment_path: experiments/smp_unet_weigh_bce
+experiment_path: experiments/wfdetection_binary_focal_dice_10
 
 #data_only_positive: True
 
 # Path to folder where must be two folder: `mask`, `img` in our format
-data_path: /home/rpartsey/development/mllab/wfdetection/images_data/separated_tif
+data_path: /home/partsey/data/separated_tif
 #data_path: /home/dzvinka/PycharmProjects/SIIM-ACR_Kaggle_MedicalSegmentators/data/processed_256/processed_256/
 img_size: &SIZE [256, 256]
 
 # Given .csv file with labels from SIIM data
-csv_path: /home/rpartsey/development/mllab/wfdetection/images_data/separated_tif/ids.csv
+csv_path: /home/partsey/data/separated_tif/ids.csv
 
 # Setup random_state for dividing dataset
 random_state: 5
@@ -58,7 +58,7 @@ stage1:
   # Epochs to train
   num_epochs: 80
   loss:
-    type: binary_batch_weighted_bce
+    type: binary_focal_dice
   optimizer: # optimizer params
       # Optim name;
       # Possible values - [adam, sgd, adadelta]

@@ -1,6 +1,12 @@
-from .losses import BinaryFocalDice, BinaryBatchWeightedCrossEntropy, WeightedLogDice, OfficialBinaryFocalLoss, BinaryFocalLoss, ImageBinaryLogDice, BinaryOnlyPositiveFocalDice
+from .losses import (
+    BinaryFocalDice, BinaryBatchWeightedCrossEntropy, WeightedLogDice,
+    OfficialBinaryFocalLoss, BinaryFocalLoss, ImageBinaryLogDice,
+    BinaryOnlyPositiveFocalDice, BinaryCrossEntropy
+)
+
 
 LOSSES = {
+    "cross_entropy": BinaryCrossEntropy,
     "binary_focal": BinaryFocalLoss,                                # the best
     "binary_focal_dice": BinaryFocalDice,                           # was used
     "binary_positive_focal_dice": BinaryOnlyPositiveFocalDice,
