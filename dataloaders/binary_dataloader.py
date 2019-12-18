@@ -88,13 +88,19 @@ class BinaryLoader(Dataset):
         X = np.array(read_tif(img_path)).transpose((1, 2, 0)).astype(np.float32) / np.iinfo(np.uint16).max
         # X = (X / np.max(X) * 255).astype(np.uint8)
         X = cv2.resize(X, (256, 256))
+
+        y = read_tif(mask_path).transpose((1, 2, 0))  # H x W x 1
+        y = cv2.resize(y, (256, 256)).astype(np.uint8)
+
+        if self.aug:
+            X, y = self.aug(X, y)
+
         # transformations = transforms.Compose([transforms.ToTensor()])
         # X = transformations(X)
         if self.image_transform:
             X = self.image_transform(X)
 
-        y = read_tif(mask_path)[0]  # H x W
-        y = cv2.resize(y, (256, 256)).astype(np.uint8)
+
         # y = torch.from_numpy(np.expand_dims(y, 0))
         if self.mask_transform:
             y = self.mask_transform(y)

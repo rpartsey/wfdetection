@@ -2,7 +2,7 @@
 #
 description: ""
 # Used where to save experiment
-experiment_path: experiments/wfdetection_binary_focal_dice_10
+experiment_path: experiments/wfdetection_binary_focal_dice_debug_11
 
 #data_only_positive: True
 
