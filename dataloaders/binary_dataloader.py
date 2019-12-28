@@ -75,21 +75,28 @@ class BinaryLoader(Dataset):
 
     def __getitem__(self, idx):
         try:
-            cur_id = self.input_df.iloc[idx][self.IMAGE_ID_COLUMN]
+            img_id = self.input_df.iloc[idx][self.IMAGE_ID_COLUMN]
+            mask_id = self.input_df.iloc[idx]['MaskId']
         except:
             print(idx, self.IMAGE_ID_COLUMN, self.input_df.shape)
             raise ValueError
 
         # fn = "{}.png".format(cur_id)
-        img_path = os.path.join(self.root_dir, 'img', cur_id)
-        mask_path = os.path.join(self.root_dir, 'mask', cur_id)
+        img_path = os.path.join(self.root_dir, 'img', img_id)
+        mask_path = os.path.join(self.root_dir, 'mask', mask_id)
 
         # original shape C x H x W
-        X = np.array(read_tif(img_path)).transpose((1, 2, 0)).astype(np.float32) / np.iinfo(np.uint16).max
+        b, g, r, nir = read_tif(img_path)
+        # some regions are outside the aoi and corresponding pixel values are zeros
+        # the result of zero division in nan, we will convert it back to 0 here
+        ndvi = np.nan_to_num((nir - r) / (nir + r))
+
+        X = np.array((b, g, ndvi)).transpose((1, 2, 0)).astype(np.float32) / np.iinfo(np.uint16).max
         # X = (X / np.max(X) * 255).astype(np.uint8)
-        X = cv2.resize(X, (256, 256))
+        # X = cv2.resize(X, (256, 256))
 
         y = read_tif(mask_path).transpose((1, 2, 0))  # H x W x 1
+        # y = y[0].astype(np.uint8)
         y = cv2.resize(y, (256, 256)).astype(np.uint8)
 
         if self.aug:

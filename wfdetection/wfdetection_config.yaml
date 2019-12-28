@@ -2,17 +2,17 @@
 #
 description: ""
 # Used where to save experiment
-experiment_path: experiments/wfdetection_binary_focal_dice_debug_11
+experiment_path: experiments/wfdetection_binary_focal_dice_cropped_02
 
 #data_only_positive: True
 
 # Path to folder where must be two folder: `mask`, `img` in our format
-data_path: /home/partsey/data/separated_tif
+data_path: /home/partsey/data/cropped
 #data_path: /home/dzvinka/PycharmProjects/SIIM-ACR_Kaggle_MedicalSegmentators/data/processed_256/processed_256/
 img_size: &SIZE [256, 256]
 
 # Given .csv file with labels from SIIM data
-csv_path: /home/partsey/data/separated_tif/ids.csv
+csv_path: /home/partsey/data/cropped/ids.csv
 
 # Setup random_state for dividing dataset
 random_state: 5
