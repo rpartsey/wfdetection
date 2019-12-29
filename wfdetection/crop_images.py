@@ -40,7 +40,7 @@ def build_coords_polygon(i, j, h, w, transform):
     """
     Returns Polygon representing rectangle with (i, j) - top left corner, height h and width w.
 
-    :param i: row index top left corner
+    :param i: row index
     :param j: column index
     :param h: height
     :param w: width
@@ -83,7 +83,7 @@ def cover_shapes(shapes, windows_coords, window_h, window_w, pixel_loc_to_coords
                     width=window_w,
                     height=window_h
                 ),
-                f'_{row // window_h}_{col // window_w}'
+                '_{}_{}'.format(row // window_h, col // window_w)
             ))
     return windows
 
@@ -106,15 +106,15 @@ def save_cropped_rasters(source, file_name, dest_dir, windows):
             'width': window.width,
             'transform': rasterio.windows.transform(window, src.transform)
         }
-        with rasterio.open(f'{dest_dir}/{file_name}{index}.tif', 'w', **meta) as dest:
+        with rasterio.open('{}/{}{}.tif'.format(dest_dir, file_name, index), 'w', **meta) as dest:
             dest.write(src.read(window=window, boundless=True, fill_value=0))
 
 
-geojson_path = os.environ.get('GEOJSON_PATH')
-files_dir = os.environ.get('IMG_DIR')
-dest_dir = os.environ.get('DEST_DIR')
-window_h = os.environ.get('WINDOW_H')
-window_w = os.environ.get('WINDOW_W')
+geojson_path = os.environ.get('GEOJSON_PATH') # path to file with shapes
+files_dir = os.environ.get('IMG_DIR') # path to directory with raster images/masks
+dest_dir = os.environ.get('DEST_DIR') # path to directory where to store cropped images
+window_h = int(os.environ.get('WINDOW_H')) # height of cropped image
+window_w = int(os.environ.get('WINDOW_W')) # width of cropped image
 
 if not (geojson_path and files_dir and dest_dir and window_h and window_w):
     raise ValueError(
@@ -122,7 +122,7 @@ if not (geojson_path and files_dir and dest_dir and window_h and window_w):
     )
 
 shapes_df = gpd.read_file(geojson_path)
-tif_files = sorted(glob.glob(f'{files_dir}/*.tif'))
+tif_files = sorted(glob.glob('{}/*.tif'.format(files_dir)))
 
 for tif_file in tif_files:
     with rasterio.open(tif_file) as src:
