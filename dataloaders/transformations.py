@@ -15,7 +15,7 @@ class FromNumpy(object):
         shape = image.shape
         if len(shape) == 2:
             return torch.from_numpy(np.expand_dims(image, 0))
-        elif len(shape) == 3 and shape[-1] == 3:
+        elif len(shape) == 3:
             return torch.from_numpy(image.transpose((2, 0, 1)))
         raise NotImplementedError("shape `{}`. Only grayscale images implemented.".format(shape))
 

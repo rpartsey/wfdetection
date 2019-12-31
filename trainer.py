@@ -96,7 +96,7 @@ class Trainer(object):
         description = "{}_img_e:{}".format(str(data), epoch)
         loader = DataLoader(data, shuffle=False, batch_size=1) # NOTE: batch_size=1
         with tqdm(loader, desc=description) as t:
-            for i, (images, masks) in enumerate(t):
+            for i, (images, masks, meta) in enumerate(t):
                 images = images.to(self.config.device)
                 with torch.no_grad():
                     logits = self.model(images).sigmoid()
@@ -113,7 +113,7 @@ class Trainer(object):
         description = 'Train Epoch {}, lr {}'.format(epoch, self.lr)
         with tqdm(dataloader, desc=description) as t:
             self.optim.zero_grad()
-            for i, (imgs, masks) in enumerate(t):
+            for i, (imgs, masks, meta) in enumerate(t):
                 imgs, masks = imgs.to(self.device), masks.float().to(self.device)
 
                 logits = self.model(imgs)
@@ -142,7 +142,7 @@ class Trainer(object):
         loss_list = []
         loss_length = 0.0001
         with tqdm(dataloader, desc='Calc metr. {} e:{}'.format(name, epoch)) as t:
-            for imgs, masks in t:
+            for imgs, masks, meta in t:
                 imgs, masks = imgs.to(self.device), masks.float().to(self.device)
                 batch = imgs.shape[0]
 

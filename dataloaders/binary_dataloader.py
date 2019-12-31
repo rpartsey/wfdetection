@@ -89,9 +89,9 @@ class BinaryLoader(Dataset):
         b, g, r, nir = read_tif(img_path)
         # some regions are outside the aoi and corresponding pixel values are zeros
         # the result of zero division in nan, we will convert it back to 0 here
-        ndvi = np.nan_to_num((nir - r) / (nir + r))
+        # ndvi = np.nan_to_num((nir - r) / (nir + r))
 
-        X = np.array((b, g, ndvi)).transpose((1, 2, 0)).astype(np.float32) / np.iinfo(np.uint16).max
+        X = np.array((b, g, r, nir)).transpose((1, 2, 0)).astype(np.float32) / np.iinfo(np.uint16).max
         # X = (X / np.max(X) * 255).astype(np.uint8)
         # X = cv2.resize(X, (256, 256))
 
@@ -121,7 +121,12 @@ class BinaryLoader(Dataset):
         # if self.aug:
         #     X, y = self.aug(X, y)
 
-        return X, y
+        meta = {
+            'img_id': img_id,
+            'mask_id': mask_id
+        }
+
+        return X, y, meta
 
     def __str__(self):
         return self.__class__.__name__
