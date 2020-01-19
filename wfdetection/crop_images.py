@@ -7,29 +7,15 @@ import rasterio.mask
 from rasterio.windows import Window
 import geopandas as gpd
 
-
 def generate_window_coords(raster_h, raster_w, window_h, window_w):
-    all_dims_are_even = raster_h % 2 == 0 and raster_w % 2 == 0 and window_h % 2 == 0 and window_w % 2 == 0
-    assert all_dims_are_even, 'Assume raster height and width and window height and width are even numbers'
+    def shift(raster_size, window_size):
+        return (window_size - raster_size % window_size) // 2
 
-    if raster_h % window_h == 0:
-        start_row_coord = 0
-        stop_row_coord = raster_h
-    else:
-        delta_h = ((raster_h // window_h + 1) * window_h - raster_h) // 2
-        start_row_coord = -delta_h
-        stop_row_coord = raster_h + delta_h
+    row_coord = -shift(raster_h, window_h)
+    col_coord = -shift(raster_w, window_w)
 
-    if raster_w % window_w == 0:
-        start_col_coord = 0
-        stop_col_coord = raster_w
-    else:
-        delta_w = ((raster_w // window_w + 1) * window_w - raster_w) // 2
-        start_col_coord = -delta_w
-        stop_col_coord = raster_w + delta_w
-
-    rows = np.arange(start_row_coord, stop_row_coord, window_h)
-    cols = np.arange(start_col_coord, stop_col_coord, window_w)
+    rows = np.arange(row_coord, raster_h, window_h)
+    cols = np.arange(col_coord, raster_w, window_w)
 
     rows, cols = np.meshgrid(rows, cols, indexing='ij')
 
