@@ -213,7 +213,7 @@ class Config(object):
     def load_datasets(self):
         # get df
         df = pd.read_csv(self.config["csv_path"])
-        df = df.groupby("ImageId").first().reset_index()
+        # df = df.groupby("ImageId").first().reset_index()
         # df["mask_exists"] = df[' EncodedPixels'] != ' -1'
         if self.config.get("data_only_positive", False):
             df = df[df["mask_exists"]]

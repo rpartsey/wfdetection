@@ -4,6 +4,7 @@ import sys
 
 import pydicom
 import torch
+from rasterio.windows import Window
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 import pandas as pd
@@ -16,11 +17,23 @@ import rasterio
 from torchvision import transforms
 
 
-def read_tif(file_path):
-    with rasterio.open(file_path) as dataset:
-        bands = dataset.read()
-        return bands
+def read_tif(path, row_off, col_off):
+    # with rasterio.open(file_path) as dataset:
+    #     bands = dataset.read()
+    #     return bands
+    with rasterio.open(path) as source:
+        window = Window(
+            col_off=col_off,
+            row_off=row_off,
+            width=256,
+            height=256
+        )
 
+        return source.read(window=window, boundless=True, fill_value=0)
+
+
+
+# os.path.join(row.dir_path, row.image_data_dir, row.analytic_tif)
 
 def cutBorders(X, y):
     shape = X.shape
@@ -75,18 +88,22 @@ class BinaryLoader(Dataset):
 
     def __getitem__(self, idx):
         try:
-            img_id = self.input_df.iloc[idx][self.IMAGE_ID_COLUMN]
-            mask_id = self.input_df.iloc[idx]['MaskId']
+            row = self.input_df.iloc[idx]
+            # img_id = self.input_df.iloc[idx][self.IMAGE_ID_COLUMN]
+            # mask_id = self.input_df.iloc[idx]['MaskId']
         except:
             print(idx, self.IMAGE_ID_COLUMN, self.input_df.shape)
             raise ValueError
 
         # fn = "{}.png".format(cur_id)
-        img_path = os.path.join(self.root_dir, 'img', img_id)
-        mask_path = os.path.join(self.root_dir, 'mask', mask_id)
+        # img_path = os.path.join(self.root_dir, 'img', img_id)
+        # mask_path = os.path.join(self.root_dir, 'mask', mask_id)
+
+        img_path = os.path.join(row.dir_path, row.image_data_dir, row.analytic_tif)
+        mask_path = os.path.join(row.dir_path, row.image_data_dir, row.analytic_tif.split('.')[0]+'_mask.tif')
 
         # original shape C x H x W
-        b, g, r, nir = read_tif(img_path)
+        b, g, r, nir = read_tif(img_path, row.row_off, row.col_off)
         # some regions are outside the aoi and corresponding pixel values are zeros
         # the result of zero division in nan, we will convert it back to 0 here
         # ndvi = np.nan_to_num((nir - r) / (nir + r))
@@ -95,7 +112,7 @@ class BinaryLoader(Dataset):
         # X = (X / np.max(X) * 255).astype(np.uint8)
         # X = cv2.resize(X, (256, 256))
 
-        y = read_tif(mask_path).transpose((1, 2, 0))  # H x W x 1
+        y = read_tif(mask_path, row.row_off, row.col_off).transpose((1, 2, 0))  # H x W x 1
         # y = y[0].astype(np.uint8)
         y = cv2.resize(y, (256, 256)).astype(np.uint8)
 
@@ -122,8 +139,8 @@ class BinaryLoader(Dataset):
         #     X, y = self.aug(X, y)
 
         meta = {
-            'img_id': img_id,
-            'mask_id': mask_id
+            'img_id': img_path,
+            'mask_id': mask_path
         }
 
         return X, y, meta

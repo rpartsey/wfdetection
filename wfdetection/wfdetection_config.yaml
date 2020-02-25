@@ -6,7 +6,7 @@ experiment_path: experiments/wfdetection_binary_focal_dice_cropped_4c
 data_path: /home/partsey/data/cropped
 img_size: &SIZE [256, 256]
 
-csv_path: /home/partsey/data/cropped/train_ids.csv
+csv_path: /home/rpartsey/data/satellite/planet/snp_2017_train.csv
 
 # Setup random_state for dividing dataset
 random_state: 5
