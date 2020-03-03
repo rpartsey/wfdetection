@@ -55,10 +55,10 @@ class Trainer(object):
             # is writing only batch metrics
             self._train_epoch(epoch, self.config.dataloaders("train", data["train_aug"]))
 
-            train_data = self.config.dataloaders(None, data["train"])
+            # train_data = self.config.dataloaders(None, data["train"])
             validation_data = self.config.dataloaders(None, data["validation"])
             # for train
-            self.calc_metrics("train", epoch, train_data)
+            # self.calc_metrics("train", epoch, train_data)
             # for val
             val_loss, val_metrics = self.calc_metrics("validation", epoch, validation_data)
             print("Val loss", val_loss)
@@ -107,6 +107,9 @@ class Trainer(object):
 
                 grid = vutils.make_grid([predicted_mask, actual_mask], nrow=2)
                 self.writer.add_image("{}/image_{}".format(name, i), grid, epoch)
+
+                if i == 10:
+                    break
 
     def _train_epoch(self, epoch, dataloader):
         self.model.train()

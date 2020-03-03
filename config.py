@@ -7,6 +7,7 @@ import time
 import pandas as pd
 
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
 
 import numpy as np
@@ -69,20 +70,29 @@ class Config(object):
 
     def dataloaders(self, name, dataset):
         params = dict()
+        # if name == "train":
+        #     if self.config.get("data_only_positive", False):
+        #         print("Using just RandomSampler")
+        #         params["shuffle"] = True
+        #     elif self.config.get("data_sampler", None) == "frog_balanced_sampler":
+        #         print("Using frog_sampler")
+        #         params["sampler"] = BalanceClassSampler(dataset, int(len(dataset) * self.config.get("sampler_multiplier", 3.0)))
+        #     else:
+        #         print("Using ImbalancedDataSampler")
+        #         params["sampler"] = ImbalancedDatasetSampler(dataset)
+        #     params["batch_size"] = self.config["train_batch_size"]
+        # else:
+        #     params["shuffle"] = False
+        #     params["batch_size"] = self.config["val_batch_size"]
+
         if name == "train":
-            if self.config.get("data_only_positive", False):
-                print("Using just RandomSampler")
-                params["shuffle"] = True
-            elif self.config.get("data_sampler", None) == "frog_balanced_sampler":
-                print("Using frog_sampler")
-                params["sampler"] = BalanceClassSampler(dataset, int(len(dataset) * self.config.get("sampler_multiplier", 3.0)))
-            else:
-                print("Using ImbalancedDataSampler")
-                params["sampler"] = ImbalancedDatasetSampler(dataset)
+            params["shuffle"] = True
             params["batch_size"] = self.config["train_batch_size"]
         else:
             params["shuffle"] = False
             params["batch_size"] = self.config["val_batch_size"]
+
+        params['num_workers'] = self.config['num_loader_workers']
         loader = DataLoader(dataset, **params)
         return loader
 
@@ -154,6 +164,7 @@ class Config(object):
             raise NotImplementedError(model_type)
         model_params["device"] = self.device
         model = model_class(**model_params)
+        model = nn.DataParallel(model)
         model = model.to(self.device)
         return model
 
@@ -212,11 +223,11 @@ class Config(object):
 
     def load_datasets(self):
         # get df
-        df = pd.read_csv(self.config["csv_path"])
+        # df = pd.read_csv(self.config["csv_path"])
         # df = df.groupby("ImageId").first().reset_index()
         # df["mask_exists"] = df[' EncodedPixels'] != ' -1'
-        if self.config.get("data_only_positive", False):
-            df = df[df["mask_exists"]]
+        # if self.config.get("data_only_positive", False):
+        #     df = df[df["mask_exists"]]
 
         # train_split_name = self.config.get("train_split_name", "split/train.npy")
         # train_image_ids = np.load(train_split_name, allow_pickle=True)
@@ -225,36 +236,45 @@ class Config(object):
         # train_csv = df[df["ImageId"].isin(train_image_ids)].reset_index(drop=True)
         # val_csv = df[df["ImageId"].isin(val_image_ids)].reset_index(drop=True)
 
-        train_csv = df.iloc[: len(df)-5, :]
-        val_csv = df.iloc[-5:, :]
+
+        # train_csv = df.iloc[: len(df)-5, :]
+        # val_csv = df.iloc[-5:, :]
+
+        train_csv = pd.read_csv(self.config["csv_path"])
+        val_csv = pd.read_csv(self.config["val_csv_path"])
 
         cut_borders = self.config.get("cut_borders", False)
 
+        chips_per_scene = self.config['chips_per_scene']
+
         print("Cut borders -->", cut_borders)
         train_aug_data = BinaryLoader(train_csv, self.config['data_path'],
-                                  image_transform=self.transformations["image"],
-                                  mask_transform=self.transformations["mask"],
-                                  aug_transform=self.augmentations,
-                                      cut_borders=cut_borders)
-
-        train_data = BinaryLoader(train_csv, self.config['data_path'],
                                       image_transform=self.transformations["image"],
                                       mask_transform=self.transformations["mask"],
-                                  cut_borders=cut_borders)
+                                      aug_transform=self.augmentations,
+                                      cut_borders=cut_borders,
+                                      chips_per_scene=chips_per_scene)
+
+        # train_data = BinaryLoader(train_csv, self.config['data_path'],
+        #                               image_transform=self.transformations["image"],
+        #                               mask_transform=self.transformations["mask"],
+        #                           cut_borders=cut_borders)
 
         val_data = BinaryLoader(val_csv, self.config['data_path'],
                                 image_transform=self.transformations["image"],
                                 mask_transform=self.transformations["mask"],
-                                cut_borders=cut_borders)
+                                aug_transform=self.augmentations,
+                                cut_borders=cut_borders,
+                                chips_per_scene=chips_per_scene)
 
         print('Training on : {} samples, validating on {} samples'.format(len(train_aug_data), len(val_data)))
 
-        train_tensorboard_data = sample_tensorfboard_images.TrainLoader.build_from_binary_loader(train_data)
+        train_tensorboard_data = sample_tensorfboard_images.TrainLoader.build_from_binary_loader(train_aug_data)
         val_tensorboard_data = sample_tensorfboard_images.ValLoader.build_from_binary_loader(val_data)
 
         data = {"train_aug": train_aug_data,
                 "validation": val_data,
-                "train": train_data,
+                "train": train_aug_data,
                 }
 
         tensor_data = {"train": train_tensorboard_data,

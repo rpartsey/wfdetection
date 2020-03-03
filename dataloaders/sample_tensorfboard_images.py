@@ -20,7 +20,9 @@ class BasePositiveLoader(BinaryLoader):
             mask_transform=binary_loader.mask_transform,
             aug_transform=binary_loader.aug,
             cut_borders=binary_loader.cut_borders,
-            align=binary_loader.align)
+            align=binary_loader.align,
+            chips_per_scene=binary_loader.chips_per_scene
+        )
         return cls(**params)
 
 
@@ -29,7 +31,7 @@ class TrainLoader(BasePositiveLoader):
     #     return 5
 
     def __getitem__(self, idx):
-        idx = random.randint(0, len(self.input_df) - 1)
+        # idx = random.randint(0, len(self.input_df) - 1)
         return super(TrainLoader, self).__getitem__(idx)
 
 

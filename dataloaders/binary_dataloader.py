@@ -17,19 +17,12 @@ import rasterio
 from torchvision import transforms
 
 
-def read_tif(path, row_off, col_off):
+def read_tif(path):
     # with rasterio.open(file_path) as dataset:
     #     bands = dataset.read()
     #     return bands
     with rasterio.open(path) as source:
-        window = Window(
-            col_off=col_off,
-            row_off=row_off,
-            width=256,
-            height=256
-        )
-
-        return source.read(window=window, boundless=True, fill_value=0)
+        return source.read()
 
 
 
@@ -65,7 +58,7 @@ class BinaryLoader(Dataset):
     MASK_EXISTS_COLUMN = "mask_exists"
 
     def __init__(self, csv_file, root_dir, image_transform=None, mask_transform=None, aug_transform=None, align=False,
-                 cut_borders=False):
+                 cut_borders=False, chips_per_scene=10):
         self.input_df = csv_file
         self.root_dir = root_dir
         self.image_transform = image_transform
@@ -73,6 +66,7 @@ class BinaryLoader(Dataset):
         self.aug = aug_transform
         self.cut_borders = cut_borders
         self.align = None
+        self.chips_per_scene = chips_per_scene
         if align:
             # TODO: download: https://www.kaggleusercontent.com/kf/6702147/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..jONz7097UrpecDRNw3sGfQ.29OWj09H9U86_jZk9f5MLi-fvxu-QsrL2Mt7lVCrl1O2BBBZTawUA3rgBFJard-6vplDy5eIXMdqd9NqWtJmudbs0H8xXyX6gI1sAQgGHfSrdbpInKkvsBJ8CxcdBAvOLIxV74sx5P1MeviH_eoZK8PTqV2MatqrZTvNJoBafoXld_SLAG9BSrKZy5UfAooM.CU43Z5_wtrUdEgJVcCzB3w/unet_lung_seg.hdf5
             self.align = AlignTransform()
@@ -81,14 +75,16 @@ class BinaryLoader(Dataset):
         return str(self.input_df.iloc[idx][self.IMAGE_ID_COLUMN])
 
     def __len__(self):
-        return len(self.input_df)
+        return len(self.input_df) * self.chips_per_scene
 
     def mask_exists(self, idx):
-        return self.input_df.iloc[idx][self.MASK_EXISTS_COLUMN]
+        row_idx = idx // self.chips_per_scene
+        return self.input_df.iloc[row_idx][self.MASK_EXISTS_COLUMN]
 
     def __getitem__(self, idx):
         try:
-            row = self.input_df.iloc[idx]
+            row_idx = idx // self.chips_per_scene
+            row = self.input_df.iloc[row_idx]
             # img_id = self.input_df.iloc[idx][self.IMAGE_ID_COLUMN]
             # mask_id = self.input_df.iloc[idx]['MaskId']
         except:
@@ -99,24 +95,34 @@ class BinaryLoader(Dataset):
         # img_path = os.path.join(self.root_dir, 'img', img_id)
         # mask_path = os.path.join(self.root_dir, 'mask', mask_id)
 
-        img_path = os.path.join(row.dir_path, row.image_data_dir, row.analytic_tif)
-        mask_path = os.path.join(row.dir_path, row.image_data_dir, row.analytic_tif.split('.')[0]+'_mask.tif')
+        # img_path = os.path.join(row.dir_path, row.image_data_dir, row.analytic_tif)
+        # mask_path = os.path.join(row.dir_path, row.image_data_dir, row.analytic_tif.split('.')[0]+'_mask.tif')
+
 
         # original shape C x H x W
-        b, g, r, nir = read_tif(img_path, row.row_off, row.col_off)
+        # b, g, r, nir = read_tif(img_path, row.row_off, row.col_off)
+
+        X = cv2.imread(row.images)
+
+        # X = cv2.resize(X, (256, 256))
         # some regions are outside the aoi and corresponding pixel values are zeros
         # the result of zero division in nan, we will convert it back to 0 here
         # ndvi = np.nan_to_num((nir - r) / (nir + r))
 
-        X = np.array((b, g, r, nir)).transpose((1, 2, 0)).astype(np.float32) / np.iinfo(np.uint16).max
+        # X = np.array((b, g, r, nir)).transpose((1, 2, 0)).astype(np.float32) / np.iinfo(np.uint16).max
         # X = (X / np.max(X) * 255).astype(np.uint8)
         # X = cv2.resize(X, (256, 256))
 
-        y = read_tif(mask_path, row.row_off, row.col_off).transpose((1, 2, 0))  # H x W x 1
+        # y = read_tif(mask_path, row.row_off, row.col_off).transpose((1, 2, 0))  # H x W x 1
         # y = y[0].astype(np.uint8)
-        y = cv2.resize(y, (256, 256)).astype(np.uint8)
+        # y = cv2.resize(y, (256, 256)).astype(np.uint8)
+        y = read_tif(row.masks)[0]
+        # y = cv2.resize(y, (256, 256))
 
+        # print('image:', row.images, row.masks)
+        # print('shapes:', X.shape, y.shape)
         if self.aug:
+            # print(X.shape, y.shape)
             X, y = self.aug(X, y)
 
         # transformations = transforms.Compose([transforms.ToTensor()])
@@ -139,8 +145,8 @@ class BinaryLoader(Dataset):
         #     X, y = self.aug(X, y)
 
         meta = {
-            'img_id': img_path,
-            'mask_id': mask_path
+            'img_id': row.images, #img_path,
+            'mask_id': row.masks, #mask_path
         }
 
         return X, y, meta
