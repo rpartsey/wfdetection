@@ -28,24 +28,24 @@ class StandartAugmentation:
 
     def __build_augmentator(self):
         return Compose([
-            # ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.0, rotate_limit=0, p=0.3),
-            # OneOf([
-            #     RandomScale(scale_limit=0.05, interpolation=1, p=0.5),
-            #     Rotate(limit=7, interpolation=1, border_mode=cv2.BORDER_CONSTANT, value=0, p=0.5)
-            # ], p=0.5),
-            # PadIfNeeded(always_apply=True, min_width=self.width, min_height=self.height),
+            ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.0, rotate_limit=0, p=0.3),
+            OneOf([
+                RandomScale(scale_limit=0.05, interpolation=1, p=0.5),
+                Rotate(limit=7, interpolation=1, border_mode=cv2.BORDER_CONSTANT, value=0, p=0.5)
+            ], p=0.5),
+            PadIfNeeded(always_apply=True, min_width=self.width, min_height=self.height),
             # RGBShift(p=0.3),
-            RandomCrop(width=self.width, height=self.height),
+            # RandomCrop(width=self.width, height=self.height),
             # OneOf([
             #     VerticalFlip(),
             #     # HorizontalFlip(p=0.2),
             # ], p=0.5),
             # OneOf([
-            #     RandomBrightness(limit=0.2, always_apply=False, p=0.5),
-            #     RandomContrast(),
+            #     # RandomBrightness(limit=0.2, always_apply=False, p=0.5),
+            #     # RandomContrast(),
             #     RandomGamma()
             # ], p=0.7),
-        ])
+        ], p=self.p)
 
 
 class FrogAugmentation:

@@ -75,16 +75,14 @@ class BinaryLoader(Dataset):
         return str(self.input_df.iloc[idx][self.IMAGE_ID_COLUMN])
 
     def __len__(self):
-        return len(self.input_df) * self.chips_per_scene
+        return len(self.input_df)
 
     def mask_exists(self, idx):
-        row_idx = idx // self.chips_per_scene
-        return self.input_df.iloc[row_idx][self.MASK_EXISTS_COLUMN]
+        return self.input_df.iloc[idx][self.MASK_EXISTS_COLUMN]
 
     def __getitem__(self, idx):
         try:
-            row_idx = idx // self.chips_per_scene
-            row = self.input_df.iloc[row_idx]
+            row = self.input_df.iloc[idx]
             # img_id = self.input_df.iloc[idx][self.IMAGE_ID_COLUMN]
             # mask_id = self.input_df.iloc[idx]['MaskId']
         except:
@@ -102,7 +100,7 @@ class BinaryLoader(Dataset):
         # original shape C x H x W
         # b, g, r, nir = read_tif(img_path, row.row_off, row.col_off)
 
-        X = cv2.imread(row.images)
+        X = cv2.imread(row.ImageId)
 
         # X = cv2.resize(X, (256, 256))
         # some regions are outside the aoi and corresponding pixel values are zeros
@@ -116,14 +114,15 @@ class BinaryLoader(Dataset):
         # y = read_tif(mask_path, row.row_off, row.col_off).transpose((1, 2, 0))  # H x W x 1
         # y = y[0].astype(np.uint8)
         # y = cv2.resize(y, (256, 256)).astype(np.uint8)
-        y = read_tif(row.masks)[0]
+        y = cv2.imread(row.masks, cv2.IMREAD_GRAYSCALE)
+        # y = read_tif(row.masks)[0]
         # y = cv2.resize(y, (256, 256))
 
         # print('image:', row.images, row.masks)
         # print('shapes:', X.shape, y.shape)
-        if self.aug:
+        # if self.aug:
             # print(X.shape, y.shape)
-            X, y = self.aug(X, y)
+            # X, y = self.aug(X, y)
 
         # transformations = transforms.Compose([transforms.ToTensor()])
         # X = transformations(X)
@@ -145,7 +144,7 @@ class BinaryLoader(Dataset):
         #     X, y = self.aug(X, y)
 
         meta = {
-            'img_id': row.images, #img_path,
+            'img_id': row.ImageId, #img_path,
             'mask_id': row.masks, #mask_path
         }
 

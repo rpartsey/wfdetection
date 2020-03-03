@@ -14,6 +14,9 @@ from metrics import Meter
 
 cv2.setNumThreads(0)
 
+import wandb
+wandb.init(sync_tensorboard=True)
+
 
 class Trainer(object):
     def __init__(self, config, stage_number):
@@ -108,7 +111,7 @@ class Trainer(object):
                 grid = vutils.make_grid([predicted_mask, actual_mask], nrow=2)
                 self.writer.add_image("{}/image_{}".format(name, i), grid, epoch)
 
-                if i == 10:
+                if i == 50:
                     break
 
     def _train_epoch(self, epoch, dataloader):

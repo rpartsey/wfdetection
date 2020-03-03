@@ -86,7 +86,7 @@ class Config(object):
         #     params["batch_size"] = self.config["val_batch_size"]
 
         if name == "train":
-            params["shuffle"] = True
+            params["sampler"] = ImbalancedDatasetSampler(dataset)
             params["batch_size"] = self.config["train_batch_size"]
         else:
             params["shuffle"] = False
