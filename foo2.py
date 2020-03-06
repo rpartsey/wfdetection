@@ -7,21 +7,35 @@ from torchvision import transforms
 import cv2
 import pandas as pd
 
+
 import torch
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from glob import iglob
 
-from models.torchhub_unet import UNet
+
+# import sys
+# sys.path.insert(0, '../')
+
+from torch import nn
+from models import SmpUnetResnetxt
 from dataloaders.binary_dataloader import BinaryLoader
 
 import rasterio
 from rasterio.windows import Window
 
-weights_path = '/home/rpartsey/code/wfdetection/experiments/open_cities_1/last.h5'
-state_dict = torch.load(weights_path, map_location='cuda:0')
-model = UNet(3, 1, pretrained=False)
+
+# ids_file_path = '/datasets/rpartsey/open_cities/output/chip/1/chips/open_cities_valid.csv'
+# data_dir = '/home/partsey/data/separated_tif'
+weights_path = '/home/rpartsey/code/foo/experiments/open_cities_smp_unet_resnext_binary_focal_125/last.h5'
+# df = pd.read_csv(ids_file_path)
+
+state_dict = torch.load(weights_path, map_location='cuda')
+model = nn.DataParallel(SmpUnetResnetxt(3, 1, pretrained=False))
 model.load_state_dict(state_dict['model'])
+model.cuda()
+
 
 import numpy as np
 import torch
@@ -58,33 +72,6 @@ from torchvision.transforms import Compose
 image_transforms = Compose([FromNumpy(), ToFloat()])
 mask_transforms = Compose([FromNumpy(), ToLong()])
 
-
-def generate_window_offsets(image_h, image_w, window_h, window_w):
-    """
-    Returns iterable with window column and row offsets(top left corner).
-
-    :param image_h: height of raster image
-    :param image_w: width of raster image
-    :param window_h: window height
-    :param window_w: window width
-    :return: iterable
-    """
-
-    def shift(raster_size, window_size):
-        return (raster_size % window_size) // 2
-
-    row_coord = -shift(image_h, window_h)
-    col_coord = -shift(image_w, window_w)
-
-    rows = np.arange(row_coord, image_h, window_h)
-    cols = np.arange(col_coord, image_w, window_w)
-
-    rows, cols = np.meshgrid(rows, cols, indexing='ij')
-
-    return zip(rows.ravel(), cols.ravel())
-
-from glob import glob
-
 IMAGE_H = 1024
 IMAGE_W = 1024
 
@@ -93,15 +80,17 @@ WINDOW_W = 256
 
 THRESHOLD = 0.5
 
-window_offsets = list(generate_window_offsets(IMAGE_H, IMAGE_W, WINDOW_H, WINDOW_W))
+# window_offsets = list(generate_window_offsets(IMAGE_H, IMAGE_W, WINDOW_H, WINDOW_W))
 
-dest_mask_dir = '/datasets/rpartsey/open_cities/output/unet_pred'
+dest_mask_dir = '/datasets/rpartsey/open_cities/output/open_cities_smp_unet_resnext_binary_focal_125'
 
 test_img_dir = '/datasets/rpartsey/open_cities/test/*/*.tif'
 counter = 0
+for path in iglob(test_img_dir):
 
-to_process = sorted(glob(test_img_dir))[4000:6000]
-for path in to_process:
+    if counter % 100 == 0:
+        print(counter)
+    counter += 1
 
     dest_path = os.path.join(dest_mask_dir, os.path.basename(path))
 
@@ -112,23 +101,16 @@ for path in to_process:
             'count': 1
         }
         with rasterio.open(dest_path, 'w', **dest_meta) as dest:
-            for row_off, col_off in window_offsets:
-                window = Window(
-                    col_off=col_off,
-                    row_off=row_off,
-                    width=WINDOW_W,
-                    height=WINDOW_H
-                )
+            r, g, b, alpha = source.read()
 
-                r, g, b, alpha = source.read(window=window, boundless=True, fill_value=0)
+            X_np = np.array((r, g, b)).transpose((1, 2, 0))
 
-                X_np = np.array((r, g, b)).transpose((1, 2, 0))
-                #         print(X_np.shape)
-                X = image_transforms(X_np)
-                with torch.no_grad():
-                    processed_logits = model(X.unsqueeze(0))
-                    processed_logits = processed_logits.sigmoid()
+            X = image_transforms(X_np)
+            with torch.no_grad():
+                processed_logits = model(X.unsqueeze(0))
+                processed_logits = processed_logits.sigmoid()
 
-                mask = (processed_logits.numpy() > THRESHOLD).astype(np.uint8)
+            mask = (processed_logits.cpu().numpy() > THRESHOLD).astype(np.uint8)
 
-                dest.write(mask[0][0], window=window, indexes=1)
+            dest.write(mask[0][0], indexes=1)
+

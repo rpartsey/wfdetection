@@ -1,16 +1,15 @@
 ---
 description: ""
-experiment_path: experiments/open_cities_4
+experiment_path: experiments/open_cities_smp_unet_resnext_binary_focal_15
 
 # Path to folder where must be two folder: `mask`, `img` in our format
 data_path: /home/partsey/data/cropped
-csv_path: /datasets/rpartsey/open_cities/output/chip/1/chips/open_cities_all_cropped.csv
-val_csv_path: /datasets/rpartsey/open_cities/output/chip/1/chips/open_cities_val_cropped.csv
-num_loader_workers: 8
+csv_path: /datasets/rpartsey/open_cities/output/cropped_chips/open_cities_all_cropped.csv
+val_csv_path: /datasets/rpartsey/open_cities/output/cropped_chips/open_cities_val_cropped.csv
+num_loader_workers: 10
 
 chips_per_scene: 10
 img_size: &SIZE [1024, 1024]
-
 
 # Setup random_state for dividing dataset
 random_state: 5
@@ -40,15 +39,15 @@ augmentations:
   size: *SIZE
 
 model: # specs for model
-    type: torch_unet
+    type: se_resnext50_32x4d
     params:
       in_channels: 3
       out_channels: 1
       pretrained: False
 
 # Batch sizes
-train_batch_size: 6
-val_batch_size: 6
+train_batch_size: 4
+val_batch_size: 4
 
 stage1:
   resume_training: False
@@ -56,7 +55,7 @@ stage1:
   # Epochs to train
   num_epochs: 50
   loss:
-    type: cross_entropy
+    type: binary_focal
   optimizer: # optimizer params
       # Optim name;
       # Possible values - [adam, sgd, adadelta]

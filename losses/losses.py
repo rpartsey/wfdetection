@@ -48,7 +48,7 @@ class OfficialBinaryFocalLoss(nn.Module):
 
 
 class BinaryFocalLoss(nn.Module):
-    def __init__(self, gamma=2.0):
+    def __init__(self, gamma=1.5):
         super().__init__()
         self.gamma = gamma
 
