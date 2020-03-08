@@ -47,15 +47,17 @@ class Trainer(object):
 
     def train(self):
         self.global_step = 0
-        data, tensor_data = self.config.load_datasets()
-        self._write_image("train", tensor_data["train"], -1)
-        self._write_image("validation", tensor_data["validation"], -1)
+        # data, tensor_data = self.config.load_datasets()
+        # self._write_image("train", tensor_data["train"], -1)
+        # self._write_image("validation", tensor_data["validation"], -1)
 
         best_loss = 1e10
         best_metrics = dict()
         print("Epochs", self.config.epochs)
         for epoch in range(self.config.epochs):
             # is writing only batch metrics
+            if epoch % 4 == 0:
+                data, tensor_data = self.config.load_datasets()
             self._train_epoch(epoch, self.config.dataloaders("train", data["train_aug"]))
 
             # train_data = self.config.dataloaders(None, data["train"])
@@ -109,9 +111,9 @@ class Trainer(object):
                 predicted_mask = logits[0].float()
 
                 grid = vutils.make_grid([predicted_mask, actual_mask], nrow=2)
-                self.writer.add_image("{}/image_{}".format(name, i), grid, epoch)
+                self.writer.add_image("{}/{}".format(name, meta['img_id']), grid, epoch)
 
-                if i == 50:
+                if name == 'train' and i == 50:
                     break
 
     def _train_epoch(self, epoch, dataloader):

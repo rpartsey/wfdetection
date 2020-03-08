@@ -241,6 +241,13 @@ class Config(object):
         # val_csv = df.iloc[-5:, :]
 
         train_csv = pd.read_csv(self.config["csv_path"])
+
+        N_SAMPLES = 300
+        train_csv = pd.concat(
+            [group.sample(min(N_SAMPLES, group.shape[0]))
+             for key, group in train_csv.groupby(by='image_id')]
+        )
+
         val_csv = pd.read_csv(self.config["val_csv_path"])
 
         cut_borders = self.config.get("cut_borders", False)
@@ -255,30 +262,32 @@ class Config(object):
                                       cut_borders=cut_borders,
                                       chips_per_scene=chips_per_scene)
 
-        # train_data = BinaryLoader(train_csv, self.config['data_path'],
-        #                               image_transform=self.transformations["image"],
-        #                               mask_transform=self.transformations["mask"],
-        #                           cut_borders=cut_borders)
+        train_data = BinaryLoader(train_csv, self.config['data_path'],
+                                  image_transform=self.transformations["image"],
+                                  mask_transform=self.transformations["mask"],
+                                  cut_borders=cut_borders,
+                                  chips_per_scene=chips_per_scene)
 
         val_data = BinaryLoader(val_csv, self.config['data_path'],
                                 image_transform=self.transformations["image"],
                                 mask_transform=self.transformations["mask"],
-                                aug_transform=self.augmentations,
                                 cut_borders=cut_borders,
                                 chips_per_scene=chips_per_scene)
 
         print('Training on : {} samples, validating on {} samples'.format(len(train_aug_data), len(val_data)))
 
-        train_tensorboard_data = sample_tensorfboard_images.TrainLoader.build_from_binary_loader(train_aug_data)
-        val_tensorboard_data = sample_tensorfboard_images.ValLoader.build_from_binary_loader(val_data)
+        # train_tensorboard_data = sample_tensorfboard_images.TrainLoader.build_from_binary_loader(train_aug_data)
+        # val_tensorboard_data = sample_tensorfboard_images.ValLoader.build_from_binary_loader(val_data)
 
-        data = {"train_aug": train_aug_data,
-                "validation": val_data,
-                "train": train_aug_data,
-                }
+        data = {
+            "train_aug": train_aug_data,
+            "validation": val_data
+        }
 
-        tensor_data = {"train": train_tensorboard_data,
-                       "validation": val_tensorboard_data}
+        tensor_data = {
+            "train": train_data,
+            "validation": val_data
+        }
 
         return data, tensor_data
 

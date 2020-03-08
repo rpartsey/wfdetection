@@ -19,7 +19,7 @@ from glob import iglob
 # sys.path.insert(0, '../')
 
 from torch import nn
-from models import SmpUnetResnetxt
+from models import SmpUnet
 from dataloaders.binary_dataloader import BinaryLoader
 
 import rasterio
@@ -28,11 +28,11 @@ from rasterio.windows import Window
 
 # ids_file_path = '/datasets/rpartsey/open_cities/output/chip/1/chips/open_cities_valid.csv'
 # data_dir = '/home/partsey/data/separated_tif'
-weights_path = '/home/rpartsey/code/foo/experiments/open_cities_smp_unet_resnext_binary_focal_125/last.h5'
+weights_path = '/home/rpartsey/code/foo/experiments/open_cities_smp_unet_binary_focal_dice_075_huge_dataset_300samples_4stable/last.h5'
 # df = pd.read_csv(ids_file_path)
 
 state_dict = torch.load(weights_path, map_location='cuda')
-model = nn.DataParallel(SmpUnetResnetxt(3, 1, pretrained=False))
+model = nn.DataParallel(SmpUnet(3, 1, pretrained=False))
 model.load_state_dict(state_dict['model'])
 model.cuda()
 
@@ -82,7 +82,7 @@ THRESHOLD = 0.5
 
 # window_offsets = list(generate_window_offsets(IMAGE_H, IMAGE_W, WINDOW_H, WINDOW_W))
 
-dest_mask_dir = '/datasets/rpartsey/open_cities/output/open_cities_smp_unet_resnext_binary_focal_125'
+dest_mask_dir = '/datasets/rpartsey/open_cities/output/open_cities_smp_unet_binary_focal_dice_075_huge_dataset_300samples_4stable'
 
 test_img_dir = '/datasets/rpartsey/open_cities/test/*/*.tif'
 counter = 0

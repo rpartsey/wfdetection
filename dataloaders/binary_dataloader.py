@@ -100,7 +100,8 @@ class BinaryLoader(Dataset):
         # original shape C x H x W
         # b, g, r, nir = read_tif(img_path, row.row_off, row.col_off)
 
-        X = cv2.imread(row.ImageId)
+        # X = cv2.imread(row.ImageId)
+        X = np.transpose(read_tif(row.ImageId)[:3], (1, 2, 0))
 
         # X = cv2.resize(X, (256, 256))
         # some regions are outside the aoi and corresponding pixel values are zeros
@@ -114,15 +115,14 @@ class BinaryLoader(Dataset):
         # y = read_tif(mask_path, row.row_off, row.col_off).transpose((1, 2, 0))  # H x W x 1
         # y = y[0].astype(np.uint8)
         # y = cv2.resize(y, (256, 256)).astype(np.uint8)
-        y = cv2.imread(row.masks, cv2.IMREAD_GRAYSCALE)
-        # y = read_tif(row.masks)[0]
+        # y = cv2.imread(row.masks, cv2.IMREAD_GRAYSCALE)
+        y = read_tif(row.masks)[0]
         # y = cv2.resize(y, (256, 256))
 
         # print('image:', row.images, row.masks)
         # print('shapes:', X.shape, y.shape)
-        # if self.aug:
-            # print(X.shape, y.shape)
-            # X, y = self.aug(X, y)
+        if self.aug:
+            X, y = self.aug(X, y)
 
         # transformations = transforms.Compose([transforms.ToTensor()])
         # X = transformations(X)
@@ -140,12 +140,12 @@ class BinaryLoader(Dataset):
         # if self.cut_borders:
         #     X, y, _ = cutBorders(X, y)
         #
-        # if self.aug:
+        # if self.aug:X
         #     X, y = self.aug(X, y)
 
         meta = {
-            'img_id': row.ImageId, #img_path,
-            'mask_id': row.masks, #mask_path
+            'img_id': os.path.basename(row.ImageId), #img_path,
+            'mask_id': os.path.basename(row.masks), #mask_path
         }
 
         return X, y, meta
